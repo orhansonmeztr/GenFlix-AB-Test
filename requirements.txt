@@ -1,0 +1,8 @@
+pandas
+jupyter
+matplotlib
+seaborn
+scipy
+python-dotenv
+tqdm
+google-generativeai
