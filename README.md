@@ -62,8 +62,8 @@ GenFlix-AB-Test/
 
    ```bash
    python -m venv venv
-   source venv/bin/activate  # Windows requires venv/Scripts/activate.
-   pip install requirements.txt.
+   source venv/bin/activate  # Windows requires venv/Scripts/activate
+   pip install -r requirements.txt
    ```
 3. **Add your API Key:**
    In the parent folder, create a file named .env and put your Google AI API key and the model you desire to use:
