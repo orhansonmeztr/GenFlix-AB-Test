@@ -55,7 +55,7 @@ GenFlix-AB-Test/
 1. **Clone the repository:**
 
    ```bash
-   git clone orhansonmeztr/GenFlix-AB-Test.github.com.git.
+   git clone https://github.com/orhansonmeztr/GenFlix-AB-Test.git
    cd GenFlix-AB-Test
    ```
 2. **Set up the environment:**
