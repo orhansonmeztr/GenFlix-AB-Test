@@ -17,7 +17,7 @@ REQUESTS_FILE_PATH = TEMP_DIR / "batch_requests.jsonl"
 JOB_STATE_FILE_PATH = TEMP_DIR / "batch_job_state.json"
 PROCESSED_DATA_PATH = BASE_DIR / "data" / "processed" / "generated_synopses.csv"
 
-NUM_SAMPLES = 1000
+NUM_SAMPLES = 100
 
 PROMPT_TEMPLATE = """
 You are a witty and engaging storyteller. Your task is to rewrite a movie synopsis to make it more exciting and appealing, like a friend recommending a must-see film.
