@@ -1,22 +1,28 @@
 # GenFlix-AB-Test
 
-In this project, an A/B test will be used to determine whether movie descriptions by an AI with a particular personality can receive more user clicks. It is driven by the Gemini Batch API of Google.
+An end-to-end A/B/n testing framework to evaluate the impact of multiple, distinct AI-generated personas on user engagement, powered by Google's Gemini Batch API.
 
 ## Project Overview
 
-The project investigates the possibility of achieving a significant shift in the user behavior through content customization with Generative AI. Rather than calling APIs individually and sluggishly, we call the affordable API known as the Google Gemini Batch API, with thousands of requests at a time.
+This project moves beyond a simple A/B test to create a robust experimental platform. It investigates whether tailoring movie synopses using different AI personalities—such as 'witty', 'serious', or 'mysterious'—can lead to statistically significant changes in user behavior.
 
-In this project we build new synopsis of movies using the Netflix Movies and TV Shows dataset on the basis of various personas. This is followed by simulated A/B test to determine how this influences the user click-through rates (CTR) and testing whether the findings are statistically significant.
+Leveraging the cost-effective Google Gemini Batch API, the system generates content for all personas in a single, asynchronous job. It then simulates a multi-variant (A/B/C/D/E) test to measure the impact of each persona on user click-through rates (CTR). Finally, a comprehensive statistical analysis determines not only which personas outperform the original, but also if there is a single "best" persona among the winners.
 
-The point is that, when a movie is rewritten by a computer with a sense of humor (as a part of a friendly person, rather than a serious critic), it can be more noticeable to a user than an ordinary description.
+The core hypothesis is that a strategically chosen AI persona can capture user interest more effectively than a standard, neutral description, and that different tones will resonate differently with users.
 
-## How It Works
+## Methodology
 
-1. **Make a Batch Job**: We begin with the publicly available Netflix data and then write a file, batch_requests.jsonl. This file contains each line with unique show id, and a prompt indicating to the AI to write a new interesting synopsis on that movie.
-2. **Create the Content**: The batch_requests file is submitted as a one-batch job to Google Gemini API. A script is then used to poll the API to see the status of the job until the job is completed.
-3. **Process the Results**: The results are then downloaded and cleaned up and then combined with our original data. This results in the final file generated as the generated_synopses.csv file which contains the original (Control Group A) and the AI-generated (Treatment Group B) texts.
-4. **Simulate an A/B Test**: A simulator is then used to simulate thousands of users. The individual user is presented with either the control or the new synopsis and we count the number of people who click on it depending upon some base conversion rates.
-5. **Analysis of Data**: This is the last stage of analysing the simulation results of a Jupyter Notebook. A Chi-Squared test is used to determine whether the difference between the CTR of Group A and Group B is significant.
+1. **Persona Definition**: A registry of distinct AI personas is defined in `src/config.py`. Each persona has a unique prompt and a fine-tuned `temperature` setting to control creative output.
+2. **Batch Job Preparation**: The script reads the Netflix dataset and prepares a single `batch_requests.jsonl` file containing prompts for **all personas** for each sampled movie.
+3. **Asynchronous Generation**: The request file is submitted as one batch job to the Google Gemini API. A monitoring script polls the API until the job is complete.
+4. **Result Processing**: Once the job succeeds, the results are downloaded, parsed, and consolidated into a single `generated_synopses.csv` file. This file contains the original synopsis (control group) and a separate column for each AI-generated persona.
+5. **Multi-Variant Simulation (Modeling User Behavior)**: Since this project does not have access to a live user base, real-world click data is unavailable. To bridge this gap, a simulation script (`ab_simulator.py`) models user behavior. It generates a large-scale dataset of user interactions by assigning tens of thousands of virtual users to the different persona groups. Each group is given a predefined, hypothetical "true" click-through rate, and the script records a "click" or "no-click" event for each user based on this probability. **The purpose of this simulation is to create a realistic dataset that allows for a robust, end-to-end demonstration of the statistical analysis framework.**
+
+6. **Statistical Analysis**: The simulation results are analyzed in a Jupyter Notebook using a three-stage process:
+   * **Omnibus Test**: A Chi-Squared test determines if there is any significant difference among all groups.
+   * **Post-Hoc Test vs. Control**: If the omnibus test is significant, pairwise tests are run to identify which personas significantly outperform the control group.
+   * **Post-Hoc Test Among Winners**: A final round of pairwise tests determines if there is a statistically significant difference between the top-performing personas.
+   * **Bonferroni Correction** is applied in the post-hoc stages to prevent false positives from multiple comparisons.
 
 ## Project Structure
 
@@ -62,42 +68,46 @@ GenFlix-AB-Test/
 
    ```bash
    python -m venv venv
-   source venv/bin/activate  # Windows requires venv/Scripts/activate
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
    pip install -r requirements.txt
    ```
-3. **Add your API Key:**
-   In the parent folder, create a file named .env and put your Google AI API key and the model you desire to use:
+3. **Add API Key and Configuration:**
+   Create a `.env` file in the root directory and add your Google AI API key and the desired model:
 
    ```
    GOOGLE_API_KEY="YOUR_API_KEY_HERE"
    GEMINI_MODEL="gemini-2.5-flash"
    ```
 4. **Download the data:**
-   Obtaining the dataset. Download [this Kaggle page](https://www.kaggle.com/datasets/hqdataprofiler/cleaned-netflix-movies-and-tv-shows) and place the `netflix_titles_CLEANED.csv` file in the `data/raw/` folder.
-5. **Run the Main Workflow:**
+   Download the dataset from [this Kaggle page](https://www.kaggle.com/datasets/hqdataprofiler/cleaned-netflix-movies-and-tv-shows) and place `netflix_titles_CLEANED.csv` into the `data/raw/` directory.
+5. **Execute the Main Workflow:**
 
-   * **Step 5.1: Submit the Batch Job**
-     This script develops the requests and forwards them to the API. Only when generated `generated_synopses.csv` is not available, it will run.
+   * **Step 5.1: Submit the Batch Job for Content Generation**
+     This script prepares requests for all personas and submits them to the API. It will not run if `generated_synopses.csv` already exists.
 
      ```bash
      python src/submit_batch_job.py
      ```
-   * **Step 5.2: Monitor the Job**
-     This script can be run to monitor the job. It will just hold there till it is finished and then download and process the results.
+   * **Step 5.2: Monitor the Job and Retrieve Results**
+     Run this script to check the job's status. It will wait until the job is complete, then download and process the results into the final multi-column CSV.
 
      ```bash
      python src/monitor_batch_job.py
      ```
 
-     Note: The Batch jobs may require several minutes. The status will be checked after some time intervals by the script.
-   * **Step 5.3: A/B Test Simulation Run**
-     When you have a ready generated `generated_synopses.csv`, run the simulation:
+     *(Note: Batch jobs can take several minutes to complete. The script will poll the status periodically.)*
+   * **Step 5.3: Run the A/B/n Test Simulation**
+     Once `generated_synopses.csv` is created, run the simulation for all groups:
 
      ```bash
-     python src/ab_simulator.py 
+     python src/ab_simulator.py
      ```
    * **Step 5.4: Analyze the Results**
-     Start and execute the `notebooks/analysis.ipynb` and view the results, statistics and charts.
+     Open and run the `notebooks/analysis.ipynb` notebook to see the results, statistical tests, and visualizations.
+
+     ```bash
+     jupyter notebook notebooks/analysis.ipynb
+     ```
 
 ## Batch Operation Utilities
 
@@ -121,4 +131,4 @@ There are a few useful scripts in the folder of the batch-operations of the sour
 
 ## Results & Analysis
 
-The `analysis.ipynb` notebook has all the findings of the analysis. It contains the calculation of the click-through rates, the Chi-Squared test, and certain charts that indicate the difference in the performance between the two groups.
+The findings from the statistical analysis are detailed in the `analysis.ipynb` notebook. The notebook includes the calculation of click-through rates, confidence intervals, the multi-stage hypothesis testing process, and visualizations to illustrate the performance differences. The analysis concludes with a data-driven business recommendation on which persona to deploy based on both statistical significance and strategic brand alignment.
